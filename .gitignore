@@ -139,3 +139,5 @@ wmb-table-*.json
 
 venv/
 *.db
+repository.zip
+.env.ansible

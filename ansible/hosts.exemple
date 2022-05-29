@@ -1,0 +1,6 @@
+[remoteserver]
+removeserver.com
+
+[remoteserver:vars]
+ansible_connection=ssh
+ansible_user=ubuntu

@@ -1,0 +1,88 @@
+---
+- name: "Server initialization"
+  hosts: remoteserver
+  remote_user: ubuntu
+  become_user: ubuntu
+  become: true
+  become_method: sudo
+  vars_files:
+    - vars.yml
+  tasks:
+    - name: APT | Update & Upgrade
+      apt:
+        update_cache: yes
+        upgrade: yes
+
+    - name: "Install packages"
+      apt:
+        name:
+          - acl
+          - unzip
+          - python-ldap
+        state: latest
+
+    - name: Install the gpg key for nodejs LTS
+      apt_key:
+        url: "https://deb.nodesource.com/gpgkey/nodesource.gpg.key"
+        state: present
+
+    - name: Install the nodejs LTS repos
+      apt_repository:
+        repo: "deb https://deb.nodesource.com/node_16.x {{ ansible_distribution_release }} main"
+        state: present
+        update_cache: yes
+
+    - name: Install the nodejs
+      apt:
+        name: nodejs
+        state: latest
+
+    - name: NPM | Install PM2
+      npm:
+        name: pm2
+        global: yes
+        state: present
+
+    - name: Project directory
+      set_fact:
+        project_dir: /home/{{ ansible_user }}/iredmail-synchronizer
+
+    - name: Create iredmail-synchronizer folder
+      file:
+        path: "{{ project_dir }}"
+        state: directory
+        mode: "0755"
+
+    - name: Unzip file
+      unarchive:
+        src: "../repository.zip"
+        dest: "{{ project_dir }}"
+        owner: "{{ ansible_user }}"
+        group: "{{ ansible_user }}"
+        mode: "0755"
+        # creates: "{{ project_dir }}/package.json"
+
+    - name: Install dependencies
+      npm:
+        path: "{{ project_dir }}"
+        state: present
+
+    - name: Copy the dotenv file
+      copy:
+        src: "../.env.ansible"
+        dest: "{{ project_dir }}/.env"
+        owner: "{{ ansible_user }}"
+        group: "{{ ansible_user }}"
+        force: yes
+        mode: "0644"
+
+    - name: Delete old pm2 process
+      command: pm2 delete ws-node
+      args:
+        chdir: "{{ project_dir }}"
+      ignore_errors: true
+
+    - name: Start the server
+      command: pm2 start dist/main.js --name node-app
+      args:
+        chdir: "{{ project_dir }}"
