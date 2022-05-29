@@ -7,11 +7,11 @@ const PORT = process.env.SMTP_PORT ? parseInt(process.env.SMTP_PORT, 10) : 587;
 if (
   !process.env.SMTP_HOST ||
   !process.env.SMTP_USER ||
-  !process.env.SMTP_PASS ||
+  !process.env.SMTP_PASSWORD ||
   !process.env.SMTP_TO
 ) {
   Logger.error(
-    "SMTP configuration is missing. Please set SMTP_HOST, SMTP_USER, SMTP_TO, and SMTP_PASS."
+    "SMTP configuration is missing. Please set SMTP_HOST, SMTP_USER, SMTP_TO, and SMTP_PASSWORD."
   );
   process.exit(1);
 }

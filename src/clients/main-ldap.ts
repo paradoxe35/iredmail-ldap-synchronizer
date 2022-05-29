@@ -4,8 +4,9 @@ import { Buffer } from "buffer";
 import { EMAIL_REGEX, lodash, wait } from "../utils";
 import { CRUD_OPERATIONS, ModifiedEntry } from "../types";
 import emitter, { KeyOfMessageEvents } from "../emitter";
-import { ATTRIBUTES_OBSERVABLE } from "src/constants";
+import { ATTRIBUTES_OBSERVABLE } from "../constants";
 import { MissingEnvironmentVariableException } from "../exceptions";
+import { Logger } from "../logger";
 
 const HOST = process.env.MAIN_LDAP_SERVER;
 if (!HOST) {
@@ -33,15 +34,21 @@ function ingore_users_entries(entries: Entry[]): Entry[] {
     .filter((u) => EMAIL_REGEX.test(u));
 
   return entries.reduce((acc, entry) => {
+    const st_entrt = JSON.stringify(entry);
     for (const user of users) {
-      const st_entrt = JSON.stringify(entry);
-      const has_password_attr = must_have_password
-        ? st_entrt.includes("userPassword")
-        : true;
-      if (st_entrt.includes(user) && has_password_attr) {
+      if (st_entrt.includes(user)) {
         return acc;
       }
     }
+
+    const has_password_attr = must_have_password
+      ? st_entrt.includes("userPassword")
+      : true;
+
+    if (!has_password_attr) {
+      return acc;
+    }
+
     return [...acc, entry];
   }, <Entry[]>[]);
 }
@@ -51,6 +58,7 @@ function ingore_users_entries(entries: Entry[]): Entry[] {
  */
 function emit_event(event: KeyOfMessageEvents, ...args: any[]): Promise<any> {
   const eventId = `${Date.now()}-${Math.random()}`;
+  Logger.info(`emit event: ${event}, eventId: ${eventId}`);
   // @ts-ignore
   emitter.emit(event, eventId, ...args);
   // @ts-ignore
@@ -62,6 +70,9 @@ function emit_event(event: KeyOfMessageEvents, ...args: any[]): Promise<any> {
  * this function should be called once.
  */
 export default async function observe_main_client_entries() {
+  // wait a time to let all components start.
+  await wait(5000);
+
   const base_dn = process.env.MAIN_LDAP_BASE_DN || "";
   const bind_dn = process.env.MAIN_LDAP_BIND_DN || "";
   const bind_password = process.env.MAIN_LDAP_BIND_PASSWORD;
@@ -75,11 +86,15 @@ export default async function observe_main_client_entries() {
   // Bind to the main client ldap server.
   await mainLDAPClient.bind(bind_dn, bind_password);
 
+  process.on("SIGINT", mainLDAPClient.unbind);
+
   // Process the observer loop.
   const process_loop = async () => {
     // Search for all entries.
     const result = await mainLDAPClient.search(base_dn, {
-      filter: process.env.MAIN_LDAP_FILTER || "(objectClass=*)",
+      filter:
+        process.env.MAIN_LDAP_FILTER ||
+        "(|(mailPrimaryAddress=*)(mail=*)(uid=*))",
     });
 
     const entries = ingore_users_entries(result.searchEntries);

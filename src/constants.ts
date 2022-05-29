@@ -7,3 +7,5 @@ export const ATTRIBUTES_OBSERVABLE = [
   "givenName",
   "displayName",
 ];
+
+export const EMAIL_ATTTRIBUTES = ["mail", "uid"];
