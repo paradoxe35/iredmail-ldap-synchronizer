@@ -1,0 +1,36 @@
+{
+    "compilerOptions": {
+        "module": "CommonJS",
+        "strict": true,
+        "noImplicitAny": true,
+        "removeComments": true,
+        "preserveConstEnums": false,
+        "sourceMap": false,
+        "strictNullChecks": true,
+        "useUnknownInCatchVariables": true,
+        "noEmitOnError": true,
+        "experimentalDecorators": true,
+        "strictPropertyInitialization": false,
+        "pretty": true,
+        "noUnusedLocals": true,
+        "noUnusedParameters": false,
+        "esModuleInterop": true,
+        "allowSyntheticDefaultImports": true,
+        "target": "ES6",
+        "moduleResolution": "node",
+        "outDir": "./dist",
+        "resolveJsonModule": true,
+        "baseUrl": ".",
+        "paths": {
+            "@src/*": [
+                "sr/*"
+            ]
+        }
+    },
+    "exclude": [
+        "node_modules"
+    ],
+    "include": [
+        "./src/**/*"
+    ]
+}
