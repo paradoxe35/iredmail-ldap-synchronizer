@@ -21,11 +21,6 @@
         "outDir": "./dist",
         "resolveJsonModule": true,
         "baseUrl": ".",
-        "paths": {
-            "@src/*": [
-                "sr/*"
-            ]
-        }
     },
     "exclude": [
         "node_modules"
