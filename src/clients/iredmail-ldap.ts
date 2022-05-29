@@ -7,6 +7,7 @@ import { ModifiedEntry } from "../types";
 import { spawn } from "child_process";
 import { writeFile } from "fs/promises";
 import path from "path";
+import { ssha_pass_async } from "../ssha";
 
 const HOST = process.env.IREDMAIL_LDAP_SERVER;
 const BASE_DN = process.env.IREDMAIL_LDAP_BASE_DN || "";
@@ -82,11 +83,12 @@ async function spawn_create_user_entry(users: UsersCreation) {
 
   const ls = spawn("python3", [python_script, "users.csv"], {
     cwd: path.resolve(process.cwd(), "tools"),
+    env: process.env,
   });
 
   return new Promise((resolve, reject) => {
-    ls.on("error", reject);
-    ls.on("close", resolve);
+    ls.stdout.on("error", reject);
+    ls.stdout.on("end", resolve);
   });
 }
 
@@ -102,6 +104,20 @@ async function get_one_entry(filter: string): Promise<Entry | undefined> {
   return result.searchEntries[0];
 }
 
+/**
+ * Change user password entry
+ */
+async function change_user_password(dn: string, password: string) {
+  const change = new Change({
+    operation: "replace",
+    modification: new Attribute({
+      type: "userPassword",
+      values: [password],
+    }),
+  });
+
+  return await iRedMailLDAPClient.modify(dn, change);
+}
 /**
  * Create entries handler.
  */
@@ -131,19 +147,21 @@ export async function create_entries_handler(
     checked_domains.push(domain);
   }
 
+  // Change user password if exists
+  for (const { email, entry } of new_users) {
+    const user = await get_one_entry(`(&(mail=${email}))`);
+    if (user) {
+      await change_user_password(user.dn, <string>entry.userPassword);
+      new_users = new_users.filter((u) => u.email !== email);
+    }
+  }
+
+  // Create use entries
   await spawn_create_user_entry(new_users);
 
   // update entries userPassword
   for (const { entry } of new_users) {
-    const change = new Change({
-      operation: "replace",
-      modification: new Attribute({
-        type: "userPassword",
-        values: [<string>entry["userPassword"]],
-      }),
-    });
-
-    await iRedMailLDAPClient.modify("cn=foo, o=example", change);
+    await change_user_password(entry.dn, <string>entry.userPassword);
   }
 
   // @ts-ignore
@@ -153,11 +171,16 @@ export async function create_entries_handler(
 /**
  * Delete entries handler.
  */
-export function delete_entries_handler(
+export async function delete_entries_handler(
   eventId: string,
   entries: Entry[]
-): void {
-  console.log(JSON.stringify(entries));
+): Promise<void> {
+  for (const entry of entries) {
+    const random_password = await ssha_pass_async(
+      Math.random().toString(36).slice(-8)
+    );
+    await change_user_password(entry.dn, random_password);
+  }
 
   // @ts-ignore
   emitter.emit(eventId);
@@ -166,12 +189,22 @@ export function delete_entries_handler(
 /**
  * Update entries handler.
  */
-export function update_entries_handler(
+export async function update_entries_handler(
   eventId: string,
   entries: ModifiedEntry[]
-): void {
-  console.log(JSON.stringify(entries));
-
+): Promise<void> {
+  for (const { entry, modified_attributes } of entries) {
+    for (const attr of modified_attributes) {
+      const change = new Change({
+        operation: "replace",
+        modification: new Attribute({
+          type: attr,
+          values: [<any>entry[attr]],
+        }),
+      });
+      await iRedMailLDAPClient.modify(entry.dn, change);
+    }
+  }
   // @ts-ignore
   emitter.emit(eventId);
 }

@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 # encoding: utf-8
-from dotenv import dotenv_values
-config = dotenv_values("../.env")
+import os
 # Author: Zhang Huangbin <zhb _at_ iredmail.org>
 # Purpose: Add new OpenLDAP user for postfix mail server.
 # Project:  iRedMail (http://www.iredmail.org/)
@@ -21,14 +20,14 @@ config = dotenv_values("../.env")
 
 # ------------------------- SETTINGS -------------------------------
 # LDAP server address.
-LDAP_URI = f'ldap://{config["IREDMAIL_LDAP_SERVER"]}:389'
+LDAP_URI = f'ldap://{os.environ.get["IREDMAIL_LDAP_SERVER"]}:389'
 
 # LDAP base dn.
-BASEDN = config["IREDMAIL_LDAP_BASE_DN"]
+BASEDN = os.environ.get["IREDMAIL_LDAP_BASE_DN"]
 
 # Bind dn/password
-BINDDN = config["IREDMAIL_LDAP_BIND_DN"]
-BINDPW = config["IREDMAIL_LDAP_BIND_PASSWORD"]
+BINDDN = os.environ.get["IREDMAIL_LDAP_BIND_DN"]
+BINDPW = os.environ.get["IREDMAIL_LDAP_BIND_PASSWORD"]
 
 # Storage base directory.
 STORAGE_BASE_DIRECTORY = '/var/vmail/vmail1'
@@ -59,7 +58,7 @@ DEFAULT_PASSWORD_SCHEME = 'SSHA512'
 HASHES_WITHOUT_PREFIXED_PASSWORD_SCHEME = ['NTLM']
 # ------------------------------------------------------------------
 
-import os
+
 import sys
 import time
 import datetime
