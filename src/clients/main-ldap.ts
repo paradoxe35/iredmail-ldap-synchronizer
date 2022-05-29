@@ -5,9 +5,15 @@ import { EMAIL_REGEX, lodash, wait } from "../utils";
 import { CRUD_OPERATIONS, ModifiedEntry } from "../types";
 import emitter, { KeyOfMessageEvents } from "../emitter";
 import { ATTRIBUTES_OBSERVABLE } from "src/constants";
+import { MissingEnvironmentVariableException } from "../exceptions";
+
+const HOST = process.env.MAIN_LDAP_SERVER;
+if (!HOST) {
+  throw new MissingEnvironmentVariableException("MAIN_LDAP_SERVER");
+}
 
 const mainLDAPClient = new Client({
-  url: `ldap://${process.env.MAIN_LDAP_SERVER}`,
+  url: `ldap://${HOST}`,
   timeout: 60 * 1000,
   connectTimeout: 0,
   strictDN: true,
@@ -56,12 +62,18 @@ function emit_event(event: KeyOfMessageEvents, ...args: any[]): Promise<any> {
  * this function should be called once.
  */
 export default async function observe_main_client_entries() {
-  const bind_dn = process.env.MAIN_LDAP_BIND_DN || "";
-  const bind_passworc = process.env.MAIN_LDAP_BIND_PASSWORD;
   const base_dn = process.env.MAIN_LDAP_BASE_DN || "";
+  const bind_dn = process.env.MAIN_LDAP_BIND_DN || "";
+  const bind_password = process.env.MAIN_LDAP_BIND_PASSWORD;
+
+  if (!bind_dn || !bind_password || !base_dn) {
+    throw new MissingEnvironmentVariableException(
+      "MAIN_LDAP_BIND_PASSWORD, MAIN_LDAP_BIND_DN, MAIN_LDAP_BASE_DN"
+    );
+  }
 
   // Bind to the main client ldap server.
-  await mainLDAPClient.bind(bind_dn, bind_passworc);
+  await mainLDAPClient.bind(bind_dn, bind_password);
 
   // Process the observer loop.
   const process_loop = async () => {
@@ -141,7 +153,11 @@ function predict_crud_operation(
   return "update";
 }
 
-// check entries differences
+/**
+ *  EntriesDiffVerifier
+ *
+ *  Check entries differences
+ */
 class EntriesDiffVerifier {
   private lastest_entries: Entry[];
   private current_entries: Entry[];

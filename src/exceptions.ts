@@ -9,3 +9,12 @@ export class ExceptionNotifier extends Error {
     send_mail({ name: this.name, message });
   }
 }
+
+export class MissingEnvironmentVariableException extends ExceptionNotifier {
+  constructor(variable: string) {
+    super(
+      `Missing environment variable: ${variable}`,
+      "MissingEnvironmentVariableException"
+    );
+  }
+}

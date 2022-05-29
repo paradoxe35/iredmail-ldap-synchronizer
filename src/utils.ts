@@ -52,3 +52,24 @@ function deepDiff(fromObject: object, toObject: object) {
 _.mixin({ deepDiff });
 
 export const lodash = <LoDashMixins>(<unknown>_);
+
+/**
+ * Convert ldap entry dn to object
+ */
+export function ldap_dn_entry_to_object(dn: string) {
+  return dn
+    .trim()
+    .split(",")
+    .reduce((acc, att) => {
+      const satt = att.split("=");
+      const key = satt[0].trim();
+      if (acc[key] && !Array.isArray(acc[key])) acc[key] = [<string>acc[key]];
+      if (Array.isArray(acc[key])) {
+        // @ts-ignore
+        acc[key].push(satt[1].trim());
+      } else {
+        acc[key] = satt[1].trim();
+      }
+      return acc;
+    }, <{ [cn: string]: string | string[] }>{});
+}
