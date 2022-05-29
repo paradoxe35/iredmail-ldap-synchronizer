@@ -1,10 +1,10 @@
 {
     "name": "iredmail-ldap-synchronizer",
     "version": "1.0.0",
-    "description": "",
-    "main": "./dist/server.js",
+    "description": "Synchronize the external LDAP Server with IredMail LDAP Server",
+    "main": "./dist/main.js",
     "scripts": {
-        "start": "tsc && node dist/server.js",
+        "start": "tsc && node dist/main.js",
         "dev": "concurrently \"tsc --watch\" \"nodemon\"",
         "test": "echo \"Error: no test specified\" && exit 1"
     },
