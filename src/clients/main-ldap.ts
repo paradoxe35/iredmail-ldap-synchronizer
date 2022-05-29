@@ -60,9 +60,10 @@ function emit_event(event: KeyOfMessageEvents, ...args: any[]): Promise<any> {
   const eventId = `${Date.now()}-${Math.random()}`;
   Logger.info(`emit event: ${event}, eventId: ${eventId}`);
   // @ts-ignore
-  emitter.emit(event, eventId, ...args);
+  const will_resolve = new Promise((resolve) => emitter.once(eventId, resolve));
   // @ts-ignore
-  return new Promise((resolve) => emitter.once(eventId, resolve));
+  emitter.emit(event, eventId, ...args);
+  return will_resolve;
 }
 
 /**
