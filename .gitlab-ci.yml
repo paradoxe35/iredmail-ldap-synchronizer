@@ -18,7 +18,6 @@ deploy-job: # This job runs in the deploy stage.
   only:
     refs:
       - main
-      - cicd-config
     variables:
       - $CI_COMMIT_MESSAGE =~ /^deploy\:/
   script:
@@ -26,4 +25,4 @@ deploy-job: # This job runs in the deploy stage.
     - bash ansible/hosts.sh
     - cat ansible/hosts
     - cat .env.ansible
-    - echo "Application successfully deployed."
+    - make deploy
