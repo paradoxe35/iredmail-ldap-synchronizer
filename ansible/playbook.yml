@@ -60,7 +60,6 @@
         owner: "{{ ansible_user }}"
         group: "{{ ansible_user }}"
         mode: "0755"
-        # creates: "{{ project_dir }}/package.json"
 
     - name: Install dependencies
       npm:
@@ -87,15 +86,15 @@
         repo: "https://github.com/iredmail/iRedMail.git"
         dest: "{{ project_dir }}/iredmail"
         clone: yes
-        update: none
+        update: no
 
-    # - name: Delete old pm2 process
-    #   command: pm2 delete ws-node
-    #   args:
-    #     chdir: "{{ project_dir }}"
-    #   ignore_errors: true
+    - name: Delete old pm2 process
+      command: pm2 delete ws-node
+      args:
+        chdir: "{{ project_dir }}"
+      ignore_errors: true
 
-    # - name: Start the server
-    #   command: pm2 start dist/main.js --name node-app
-    #   args:
-    #     chdir: "{{ project_dir }}"
+    - name: Start the server
+      command: pm2 start dist/main.js --name node-app
+      args:
+        chdir: "{{ project_dir }}"
