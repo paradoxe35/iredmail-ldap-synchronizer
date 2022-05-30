@@ -19,5 +19,6 @@ deploy-job:      # This job runs in the deploy stage.
       - main
       - cicd-config
   script:
-    - echo "Deploying application...$IREDMAIL_LDAP_SERVER"
+    - echo $IREDMAIL_LDAP_SERVER
+    - echo "Deploying application..."
     - echo "Application successfully deployed."
