@@ -111,14 +111,8 @@ async function spawn_create_user_entry(create: UsersByDomain) {
     spawned.stdout.on("data", (data) => {
       datas += data;
     });
-    spawned.on("error", () => {
-      Logger.error("[spawn_create_user_entry]", datas);
-      reject();
-    });
-    spawned.on("exit", () => {
-      Logger.info("[spawn_create_user_entry]", datas);
-      resolve(datas);
-    });
+    spawned.on("error", reject);
+    spawned.on("exit", () => resolve(datas));
   });
 }
 
