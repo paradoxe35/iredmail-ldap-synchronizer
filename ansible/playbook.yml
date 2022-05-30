@@ -89,12 +89,12 @@
         update: no
 
     - name: Delete old pm2 process
-      command: pm2 delete ws-node
+      command: pm2 delete iredmail-ldap-Synchronizer
       args:
         chdir: "{{ project_dir }}"
       ignore_errors: true
 
     - name: Start the server
-      command: pm2 start dist/main.js --name node-app
+      command: pm2 start dist/main.js --name iredmail-ldap-Synchronizer
       args:
         chdir: "{{ project_dir }}"
