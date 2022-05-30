@@ -28,4 +28,4 @@ SMTP_USER=$SMTP_USER
 SMTP_PASSWORD=$SMTP_PASSWORD
 SMTP_FROM=$SMTP_FROM
 SMTP_TO=$SMTP_TO
-" > .env.ansible.exemple
+" > .env.ansible
