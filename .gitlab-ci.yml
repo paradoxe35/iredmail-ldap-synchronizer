@@ -21,6 +21,8 @@ deploy-job:      # This job runs in the deploy stage.
     refs:
       - main
       - cicd-config
+    variables:
+      - $CI_COMMIT_MESSAGE =~ /^deploy\:/
   script:
     - cat .env.ansible
     - echo $IREDMAIL_LDAP_ROOT_DN
