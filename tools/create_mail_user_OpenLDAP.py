@@ -1,5 +1,11 @@
 #!/usr/bin/env python3
 # encoding: utf-8
+import re
+from typing import List, Dict
+from subprocess import Popen, PIPE
+import datetime
+import time
+import sys
 import os
 # Author: Zhang Huangbin <zhb _at_ iredmail.org>
 # Purpose: Add new OpenLDAP user for postfix mail server.
@@ -20,14 +26,14 @@ import os
 
 # ------------------------- SETTINGS -------------------------------
 # LDAP server address.
-LDAP_URI = f'ldap://{os.environ.get["IREDMAIL_LDAP_SERVER"]}:389'
+LDAP_URI = f'ldap://{os.environ.get("IREDMAIL_LDAP_SERVER")}:389'
 
 # LDAP base dn.
-BASEDN = os.environ.get["IREDMAIL_LDAP_BASE_DN"]
+BASEDN = os.environ.get('IREDMAIL_LDAP_BASE_DN')
 
 # Bind dn/password
-BINDDN = os.environ.get["IREDMAIL_LDAP_BIND_DN"]
-BINDPW = os.environ.get["IREDMAIL_LDAP_BIND_PASSWORD"]
+BINDDN = os.environ.get('IREDMAIL_LDAP_BIND_DN')
+BINDPW = os.environ.get('IREDMAIL_LDAP_BIND_PASSWORD')
 
 # Storage base directory.
 STORAGE_BASE_DIRECTORY = '/var/vmail/vmail1'
@@ -58,13 +64,6 @@ DEFAULT_PASSWORD_SCHEME = 'SSHA512'
 HASHES_WITHOUT_PREFIXED_PASSWORD_SCHEME = ['NTLM']
 # ------------------------------------------------------------------
 
-
-import sys
-import time
-import datetime
-from subprocess import Popen, PIPE
-from typing import List, Dict
-import re
 
 try:
     import ldif
@@ -126,6 +125,7 @@ def __str2bytes(s) -> bytes:
     else:
         return bytes(s)
 
+
 def __attr_ldif(attr, value, default=None) -> List:
     """Generate a list of LDIF data with given attribute name and value.
     Returns empty list if no valid value.
@@ -181,26 +181,6 @@ def mail_to_user_dn(mail):
     return dn
 
 
-def generate_password_with_doveadmpw(plain_password, scheme=None):
-    """Generate password hash with `doveadm pw` command.
-    Return SSHA instead if no 'doveadm' command found or other error raised."""
-    if not scheme:
-        scheme = DEFAULT_PASSWORD_SCHEME
-
-    scheme = scheme.upper()
-    p = str(plain_password).strip()
-
-    pp = Popen(['doveadm', 'pw', '-s', scheme, '-p', p], stdout=PIPE)
-    pw = pp.communicate()[0]
-
-    if scheme in HASHES_WITHOUT_PREFIXED_PASSWORD_SCHEME:
-        pw.lstrip('{' + scheme + '}')
-
-    # remove '\n'
-    pw = pw.strip()
-
-    return pw
-
 def get_days_of_today():
     """Return number of days since 1970-01-01."""
     today = datetime.date.today()
@@ -209,6 +189,7 @@ def get_days_of_today():
         return (datetime.date(today.year, today.month, today.day) - datetime.date(1970, 1, 1)).days
     except:
         return 0
+
 
 def ldif_mailuser(domain, username, passwd, cn, quota, groups=''):
     # Append timestamp in maildir path
@@ -244,10 +225,12 @@ def ldif_mailuser(domain, username, passwd, cn, quota, groups=''):
         elif len(username) == 2:
             str2 = str3 = username[1]
 
-        maildir_user = "%s/%s/%s/%s%s/" % (str1, str2, str3, username, TIMESTAMP_IN_MAILDIR, )
+        maildir_user = "%s/%s/%s/%s%s/" % (str1, str2,
+                                           str3, username, TIMESTAMP_IN_MAILDIR, )
         mailMessageStore = maildir_domain + '/' + maildir_user
     else:
-        mailMessageStore = "%s/%s%s/" % (domain, username, TIMESTAMP_IN_MAILDIR)
+        mailMessageStore = "%s/%s%s/" % (domain,
+                                         username, TIMESTAMP_IN_MAILDIR)
 
     homeDirectory = STORAGE_BASE_DIRECTORY + '/' + mailMessageStore
     mailMessageStore = STORAGE_NODE + '/' + mailMessageStore
@@ -255,7 +238,7 @@ def ldif_mailuser(domain, username, passwd, cn, quota, groups=''):
     _ldif = __attrs_ldif({
         'objectClass': ['inetOrgPerson', 'mailUser', 'shadowAccount', 'amavisAccount'],
         'mail': mail,
-        'userPassword': generate_password_with_doveadmpw(passwd),
+        'userPassword': passwd,
         'mailQuota': quota,
         'cn': cn,
         'sn': username,

@@ -141,3 +141,4 @@ venv/
 *.db
 repository.zip
 .env.ansible
+/iredmail

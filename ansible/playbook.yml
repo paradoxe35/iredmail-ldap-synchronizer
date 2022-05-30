@@ -2,7 +2,6 @@
 - name: "Server initialization"
   hosts: remoteserver
   remote_user: ubuntu
-  become_user: ubuntu
   become: true
   become_method: sudo
   tasks:
@@ -16,8 +15,11 @@
         name:
           - acl
           - unzip
-          - python-ldap
         state: latest
+
+    - name: Install python-ldap python package
+      pip:
+        name: python-ldap
 
     - name: Install the gpg key for nodejs LTS
       apt_key:
@@ -74,13 +76,26 @@
         force: yes
         mode: "0644"
 
-    - name: Delete old pm2 process
-      command: pm2 delete ws-node
+    - name: Build assets
+      command: npm run tsc
       args:
         chdir: "{{ project_dir }}"
       ignore_errors: true
 
-    - name: Start the server
-      command: pm2 start dist/main.js --name node-app
-      args:
-        chdir: "{{ project_dir }}"
+    - name: Git clone iRedMail repository
+      git:
+        repo: "https://github.com/iredmail/iRedMail.git"
+        dest: "{{ project_dir }}/iredmail"
+        clone: yes
+        update: none
+
+    # - name: Delete old pm2 process
+    #   command: pm2 delete ws-node
+    #   args:
+    #     chdir: "{{ project_dir }}"
+    #   ignore_errors: true
+
+    # - name: Start the server
+    #   command: pm2 start dist/main.js --name node-app
+    #   args:
+    #     chdir: "{{ project_dir }}"

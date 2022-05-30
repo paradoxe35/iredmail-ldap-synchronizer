@@ -5,13 +5,13 @@ import emitter from "../emitter";
 import { MissingEnvironmentVariableException } from "../exceptions";
 import { ModifiedEntry } from "../types";
 import { spawn } from "child_process";
-import { writeFile } from "fs/promises";
 import path from "path";
 import { ssha_pass_async } from "../ssha";
 import { Logger } from "../logger";
 
 const HOST = process.env.IREDMAIL_LDAP_SERVER;
 const BASE_DN = process.env.IREDMAIL_LDAP_BASE_DN || "";
+const ROOT_DN = process.env.IREDMAIL_LDAP_ROOT_DN || "";
 const BIND_DN = process.env.IREDMAIL_LDAP_BIND_DN || "";
 const BIND_PASSWORD = process.env.IREDMAIL_LDAP_BIND_PASSWORD;
 
@@ -34,9 +34,9 @@ process.on("SIGINT", iRedMailLDAPClient.unbind);
  * Bind dn to the ldap server.
  */
 export async function iredmail_server_bind_dn() {
-  if (!BASE_DN || !BIND_PASSWORD || !BIND_DN) {
+  if (!BASE_DN || !BIND_PASSWORD || !BIND_DN || !ROOT_DN) {
     throw new MissingEnvironmentVariableException(
-      "IREDMAIL_LDAP_BASE_DN, IREDMAIL_LDAP_BIND_DN, IREDMAIL_LDAP_BIND_PASSWORD"
+      "IREDMAIL_LDAP_BASE_DN, IREDMAIL_LDAP_BIND_DN, IREDMAIL_LDAP_BIND_PASSWORD, ROOT_DN"
     );
   }
 
@@ -71,34 +71,54 @@ type UsersCreation = {
   username: string;
   email: string;
   entry: Entry;
-}[];
+};
+
+type UsersByDomain = {
+  domain: string;
+  users: string[];
+};
 
 /**
  * Create user from py script spawn process.
  */
-async function spawn_create_user_entry(users: UsersCreation) {
-  const csv_content = users
-    .map(({ domain, username }) => {
-      const pwd = process.env.LDAP_DEFAULT_PASSWORD || "0000";
-      return `${domain}, ${username}, ${pwd}`;
-    })
-    .join("\n");
-
-  const users_csv_file = path.resolve(process.cwd(), "tools/users.csv");
-  // write user content csv file
-  await writeFile(users_csv_file, csv_content);
+async function spawn_create_user_entry(create: UsersByDomain) {
+  // Uncomment if you want to use the python script.
+  /**const csv_content = users
+        .map(({ domain, username, entry }) => {
+          const pwd = Array.isArray(entry["userPassword"])
+            ? entry["userPassword"][0]
+            : entry["userPassword"];
+          return `${domain}, ${username}, ${pwd}, , ,`;
+        })
+        .join("\n");  
+    // const users_csv_file = path.resolve(process.cwd(), "tools/users.csv");
+    // write user content csv file
+    // await writeFile(users_csv_file, csv_content);
+   */
 
   // python script path
-  const python_script = "create_mail_user_OpenLDAP.py";
-
-  const ls = spawn("python3", [python_script, "users.csv"], {
-    cwd: path.resolve(process.cwd(), "tools"),
-    env: process.env,
-  });
+  const spawned = spawn(
+    "bash",
+    ["create_mail_user_OpenLDAP.sh", create.domain, ...create.users],
+    {
+      cwd: path.resolve(process.cwd(), "tools"),
+      env: process.env,
+    }
+  );
 
   return new Promise((resolve, reject) => {
-    ls.stdout.on("error", reject);
-    ls.stdout.on("end", resolve);
+    let datas = "";
+    spawned.stdout.on("data", (data) => {
+      datas += data;
+    });
+    spawned.on("error", () => {
+      Logger.error("[spawn_create_user_entry]", datas);
+      reject();
+    });
+    spawned.on("exit", () => {
+      Logger.info("[spawn_create_user_entry]", datas);
+      resolve(datas);
+    });
   });
 }
 
@@ -141,12 +161,12 @@ export async function create_entries_handler(
       if (!email_data) return null;
       return { entry, ...email_data };
     })
-    .filter(Boolean) as UsersCreation;
+    .filter(Boolean) as UsersCreation[];
 
   const handler = async () => {
     // verify if domain exists
     const checked_domains: string[] = [];
-    let new_users: UsersCreation = users;
+    let new_users: UsersCreation[] = users;
     for (const { domain } of users) {
       if (checked_domains.includes(domain)) continue;
       const exist = await get_one_entry(`(&(domainName=${domain}))`);
@@ -170,8 +190,24 @@ export async function create_entries_handler(
     // Change user password if exists
     new_users = await update_password();
 
+    // Create new users by domain
+    const users_by_domain: UsersByDomain[] = new_users.reduce(
+      (acc, { domain, username }) => {
+        const exist = acc.find((u) => u.domain === domain);
+        if (exist) {
+          exist.users.push(username);
+        } else {
+          acc.push({ domain, users: [username] });
+        }
+        return acc;
+      },
+      <UsersByDomain[]>[]
+    );
+
     // Create use entries
-    await spawn_create_user_entry(new_users);
+    for (const create of users_by_domain) {
+      await spawn_create_user_entry(create);
+    }
 
     // update created entries userPassword
     await update_password();
