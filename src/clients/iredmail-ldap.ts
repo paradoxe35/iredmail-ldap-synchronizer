@@ -43,14 +43,19 @@ export async function iredmail_server_bind_dn() {
 /**
  * Get email address from the entry.
  */
-function get_email_from_entry(entry: Entry): string | null {
+function get_email_from_entry(
+  entry: Entry
+): { domain: string; username: string; email: string } | null {
   for (const att of EMAIL_ATTTRIBUTES) {
     if (
       entry[att] &&
       typeof entry[att] === "string" &&
       EMAIL_REGEX.test(<string>entry[att])
     ) {
-      return <string>entry[att];
+      const email = <string>entry[att];
+      const username = email.slice(0, email.indexOf("@"));
+      const domain = email.slice(email.indexOf("@") + 1);
+      return { domain, username, email };
     }
   }
   return null;
@@ -127,11 +132,9 @@ export async function create_entries_handler(
 ): Promise<void> {
   const users = entries
     .map((entry) => {
-      const email = get_email_from_entry(entry);
-      if (!email) return null;
-      const username = email.slice(0, email.indexOf("@"));
-      const domain = email.slice(email.indexOf("@") + 1);
-      return { domain, username, entry, email };
+      const email_data = get_email_from_entry(entry);
+      if (!email_data) return null;
+      return { entry, ...email_data };
     })
     .filter(Boolean) as UsersCreation;
 
@@ -147,22 +150,25 @@ export async function create_entries_handler(
     checked_domains.push(domain);
   }
 
-  // Change user password if exists
-  for (const { email, entry } of new_users) {
-    const user = await get_one_entry(`(&(mail=${email}))`);
-    if (user) {
-      await change_user_password(user.dn, <string>entry.userPassword);
-      new_users = new_users.filter((u) => u.email !== email);
+  const update_password = async () => {
+    for (const { email, entry } of new_users) {
+      const user = await get_one_entry(`(&(mail=${email}))`);
+      if (user) {
+        await change_user_password(user.dn, <string>entry.userPassword);
+        new_users = new_users.filter((u) => u.email !== email);
+      }
     }
-  }
+    return new_users;
+  };
+
+  // Change user password if exists
+  new_users = await update_password();
 
   // Create use entries
   await spawn_create_user_entry(new_users);
 
-  // update entries userPassword
-  for (const { entry } of new_users) {
-    await change_user_password(entry.dn, <string>entry.userPassword);
-  }
+  // update created entries userPassword
+  await update_password();
 
   // @ts-ignore
   emitter.emit(eventId);
@@ -176,10 +182,18 @@ export async function delete_entries_handler(
   entries: Entry[]
 ): Promise<void> {
   for (const entry of entries) {
+    const email_data = get_email_from_entry(entry);
+    if (!email_data) continue;
+
+    const { email } = email_data;
+    // get user entry from ldap
+    const user = await get_one_entry(`(&(mail=${email}))`);
+    if (!user) continue;
+    // Update password with random password
     const random_password = await ssha_pass_async(
       Math.random().toString(36).slice(-8)
     );
-    await change_user_password(entry.dn, random_password);
+    await change_user_password(user.dn, random_password);
   }
 
   // @ts-ignore
@@ -194,6 +208,14 @@ export async function update_entries_handler(
   entries: ModifiedEntry[]
 ): Promise<void> {
   for (const { entry, modified_attributes } of entries) {
+    const email_data = get_email_from_entry(entry);
+    if (!email_data) continue;
+
+    const { email } = email_data;
+    // get user entry from ldap
+    const user = await get_one_entry(`(&(mail=${email}))`);
+    if (!user) continue;
+
     for (const attr of modified_attributes) {
       const change = new Change({
         operation: "replace",
@@ -202,7 +224,7 @@ export async function update_entries_handler(
           values: [<any>entry[attr]],
         }),
       });
-      await iRedMailLDAPClient.modify(entry.dn, change);
+      await iRedMailLDAPClient.modify(user.dn, change);
     }
   }
   // @ts-ignore
