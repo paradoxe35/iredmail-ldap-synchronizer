@@ -1,4 +1,4 @@
-import { Client, Entry } from "ldapts";
+import { Client, Entry, SearchResult } from "ldapts";
 import { EntriesStateDb, entries_state_db } from "../datastore";
 import { Buffer } from "buffer";
 import { EMAIL_REGEX, lodash, wait } from "../utils";
@@ -85,6 +85,8 @@ export default async function observe_main_client_entries() {
     );
   }
 
+  const NEXT_PROCESS_TIME = 7 * 1000;
+
   // Process the observer loop.
   const process_loop = async (
     options?: { exit: boolean },
@@ -92,14 +94,24 @@ export default async function observe_main_client_entries() {
   ) => {
     if (options?.exit) process.exit();
 
+    let result: SearchResult | null = null;
     // Search for all entries.
-    const result = await mainLDAPClient.search(base_dn, {
-      filter:
-        process.env.MAIN_LDAP_FILTER ||
-        "(|(mailPrimaryAddress=*)(mail=*)(uid=*))",
-    });
+    try {
+      result = await mainLDAPClient.search(base_dn, {
+        filter:
+          process.env.MAIN_LDAP_FILTER ||
+          "(|(mailPrimaryAddress=*)(mail=*)(uid=*))",
+      });
+    } catch (error) {
+      Logger.error(error);
 
-    const entries = ingore_users_entries(result.searchEntries);
+      await wait(NEXT_PROCESS_TIME);
+
+      setImmediate(process_loop);
+      return;
+    }
+
+    const entries = ingore_users_entries(result!.searchEntries);
 
     const entries_hash = Buffer.from(JSON.stringify(entries)).toString(
       "base64"
@@ -140,8 +152,8 @@ export default async function observe_main_client_entries() {
       }
     }
 
-    // Wait 5 seconds before next loop.
-    await wait(10 * 1000);
+    // Wait 7 seconds before next loop.
+    await wait(NEXT_PROCESS_TIME);
 
     // manuel compactDatafileAsync nedb
     await entries_state_db.compactDatafileAsync();

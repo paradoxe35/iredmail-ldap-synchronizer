@@ -180,6 +180,7 @@ export async function create_entries_handler(
   // call the handler and end the event
   try {
     await handler();
+    Logger.info("Objects created...");
   } catch (error) {
     Logger.error(error);
   } finally {
@@ -215,6 +216,7 @@ export async function delete_entries_handler(
   // call the handler and end the event
   try {
     await handler();
+    Logger.info("Objects deleted...");
   } catch (error) {
     Logger.error(error);
   } finally {
@@ -254,6 +256,7 @@ export async function update_entries_handler(
   // call the handler and end the event
   try {
     await handler();
+    Logger.info("Objects updated...");
   } catch (error) {
     Logger.error(error);
   } finally {
