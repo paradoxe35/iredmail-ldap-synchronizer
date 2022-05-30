@@ -6,11 +6,10 @@ stages:          # List of stages for jobs, and their order of execution
 before_script:
   - python --version  # For debugging
   - pip install virtualenv
-  - python -m venv venv
-  - source venv/bin/activate
-  - curl -sL https://deb.nodesource.com/setup_14.x | bash -
-  - apt-get install -y nodejs
-  - npm install -g pnpm
+  - python -m venv ansible/venv
+  - source ansible/venv/bin/activate
+  - pip install -r requirements.txt
+  - bash pipeline-vars-extractor.sh
 
 
 deploy-job:      # This job runs in the deploy stage.
@@ -22,7 +21,7 @@ deploy-job:      # This job runs in the deploy stage.
       - main
       - cicd-config
   script:
-    - git --help
+    - cat .env.ansible
     - echo $IREDMAIL_LDAP_ROOT_DN
     - echo "Deploying application..."
     - echo "Application successfully deployed."
