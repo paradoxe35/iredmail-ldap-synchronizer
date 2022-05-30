@@ -23,6 +23,4 @@ deploy-job: # This job runs in the deploy stage.
   script:
     - bash .env.ansible.sh
     - bash ansible/hosts.sh
-    - cat ansible/hosts
-    - cat .env.ansible
     - make deploy
