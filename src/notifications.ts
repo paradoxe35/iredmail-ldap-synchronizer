@@ -29,14 +29,16 @@ let transporter = nodemailer.createTransport({
 
 export default async function send_mail(message: string | Object) {
   // send mail with defined transport object
-  let info = await transporter.sendMail({
-    from: `"iRedMail Synchronizer 👻" ${process.env.SMTP_FROM}`, // sender address
-    to: process.env.SMTP_TO, // list of receivers
-    subject: "Synchronizer Warning", // Subject line
-    text: JSON.stringify(message) || "Empty Message", // plain text body
-  });
+  let info = await transporter
+    .sendMail({
+      from: `"iRedMail LDAP Synchronizer 👻" ${process.env.SMTP_FROM}`, // sender address
+      to: process.env.SMTP_TO, // list of receivers
+      subject: "Synchronizer Warning", // Subject line
+      text: JSON.stringify(message) || "Empty Message", // plain text body
+    })
+    .catch(console.error);
 
-  Logger.info("Message sent: %s", info.messageId);
+  info && Logger.info("Message sent: %s", info?.messageId);
 
   return info;
 }

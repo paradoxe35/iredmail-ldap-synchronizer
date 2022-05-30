@@ -8,6 +8,7 @@ import { spawn } from "child_process";
 import path from "path";
 import { ssha_pass_async } from "../ssha";
 import { Logger } from "../logger";
+import send_mail from "../notifications";
 
 const HOST = process.env.IREDMAIL_LDAP_SERVER;
 const BASE_DN = process.env.IREDMAIL_LDAP_BASE_DN || "";
@@ -157,10 +158,11 @@ export async function create_entries_handler(
     })
     .filter(Boolean) as UsersCreation[];
 
+  let new_users: UsersCreation[] = users;
+
   const handler = async () => {
     // verify if domain exists
     const checked_domains: string[] = [];
-    let new_users: UsersCreation[] = users;
     for (const { domain } of users) {
       if (checked_domains.includes(domain)) continue;
       const exist = await get_one_entry(`(&(domainName=${domain}))`);
@@ -211,6 +213,13 @@ export async function create_entries_handler(
   try {
     await handler();
     Logger.info("Objects created...");
+
+    // Notfication email
+    send_mail(
+      `News objects users created: \n ${JSON.stringify(
+        new_users
+      )} \n Action: create`
+    );
   } catch (error) {
     Logger.error(error);
   } finally {
@@ -246,7 +255,15 @@ export async function delete_entries_handler(
   // call the handler and end the event
   try {
     await handler();
+    // Logs
     Logger.info("Objects deleted...");
+
+    // Notfication email
+    send_mail(
+      `Deletion process receveid and applied: \n ${JSON.stringify(
+        entries
+      )} \ Action: change_user_password`
+    );
   } catch (error) {
     Logger.error(error);
   } finally {
@@ -286,7 +303,14 @@ export async function update_entries_handler(
   // call the handler and end the event
   try {
     await handler();
+    // Logs
     Logger.info("Objects updated...");
+    // Notfication email
+    send_mail(
+      `Update process receveid and applied: \n ${JSON.stringify(
+        entries
+      )} \ Action: update`
+    );
   } catch (error) {
     Logger.error(error);
   } finally {
