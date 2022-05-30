@@ -11,17 +11,22 @@ export const entries_state_db = new Datastore<EntriesStateDatastore>({
   autoload: true,
 });
 
-
 // query functions
 export class EntriesStateDb {
-  static async get_hash(): Promise<string> {
+  static async get_hash(): Promise<{ hash: string; _id: undefined }> {
     const hash = await entries_state_db.findOneAsync({});
-    return hash
+    const str_hash = hash
       ? hash.hash
       : Buffer.from(JSON.stringify([])).toString("base64");
+    // @ts-ignore
+    return { hash: str_hash, _id: hash ? hash._id : undefined };
   }
 
-  static async set_hash(hash: string): Promise<void> {
-    await entries_state_db.updateAsync({}, { hash }, { upsert: true });
+  static async set_hash(hash: string, _id?: string): Promise<void> {
+    await entries_state_db.updateAsync(
+      _id ? { _id } : {},
+      { $set: { hash } },
+      { upsert: true }
+    );
   }
 }

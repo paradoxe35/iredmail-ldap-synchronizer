@@ -8,6 +8,7 @@ import { spawn } from "child_process";
 import { writeFile } from "fs/promises";
 import path from "path";
 import { ssha_pass_async } from "../ssha";
+import { Logger } from "../logger";
 
 const HOST = process.env.IREDMAIL_LDAP_SERVER;
 const BASE_DN = process.env.IREDMAIL_LDAP_BASE_DN || "";
@@ -20,10 +21,14 @@ if (!HOST) {
 
 const iRedMailLDAPClient = new Client({
   url: `ldap://${HOST}`,
-  timeout: 60 * 1000,
+  timeout: 0,
   connectTimeout: 0,
   strictDN: true,
 });
+
+// Clean up the server bindings.
+process.on("exit", iRedMailLDAPClient.unbind);
+process.on("SIGINT", iRedMailLDAPClient.unbind);
 
 /**
  * Bind dn to the ldap server.
@@ -35,9 +40,9 @@ export async function iredmail_server_bind_dn() {
     );
   }
 
-  await iRedMailLDAPClient.bind(BIND_DN, BIND_PASSWORD);
-
-  process.on("SIGINT", iRedMailLDAPClient.unbind);
+  return await iRedMailLDAPClient
+    .bind(BIND_DN, BIND_PASSWORD)
+    .catch(Logger.error);
 }
 
 /**
@@ -103,7 +108,7 @@ async function spawn_create_user_entry(users: UsersCreation) {
  */
 async function get_one_entry(filter: string): Promise<Entry | undefined> {
   const result = await iRedMailLDAPClient.search(BASE_DN, {
-    filter,
+    filter: filter.trim(),
   });
 
   return result.searchEntries[0];
@@ -138,40 +143,49 @@ export async function create_entries_handler(
     })
     .filter(Boolean) as UsersCreation;
 
-  // verify if domain exists
-  const checked_domains: string[] = [];
-  let new_users: UsersCreation = users;
-  for (const { domain } of users) {
-    if (checked_domains.includes(domain)) continue;
-    const exist = await get_one_entry(`(&(domainName=${domain}))`);
-    if (!exist) {
-      new_users = users.filter((u) => u.domain !== domain);
-    }
-    checked_domains.push(domain);
-  }
-
-  const update_password = async () => {
-    for (const { email, entry } of new_users) {
-      const user = await get_one_entry(`(&(mail=${email}))`);
-      if (user) {
-        await change_user_password(user.dn, <string>entry.userPassword);
-        new_users = new_users.filter((u) => u.email !== email);
+  const handler = async () => {
+    // verify if domain exists
+    const checked_domains: string[] = [];
+    let new_users: UsersCreation = users;
+    for (const { domain } of users) {
+      if (checked_domains.includes(domain)) continue;
+      const exist = await get_one_entry(`(&(domainName=${domain}))`);
+      if (!exist) {
+        new_users = users.filter((u) => u.domain !== domain);
       }
+      checked_domains.push(domain);
     }
-    return new_users;
+
+    const update_password = async () => {
+      for (const { email, entry } of new_users) {
+        const user = await get_one_entry(`(&(mail=${email}))`);
+        if (user) {
+          await change_user_password(user.dn, <string>entry.userPassword);
+          new_users = new_users.filter((u) => u.email !== email);
+        }
+      }
+      return new_users;
+    };
+
+    // Change user password if exists
+    new_users = await update_password();
+
+    // Create use entries
+    await spawn_create_user_entry(new_users);
+
+    // update created entries userPassword
+    await update_password();
   };
 
-  // Change user password if exists
-  new_users = await update_password();
-
-  // Create use entries
-  await spawn_create_user_entry(new_users);
-
-  // update created entries userPassword
-  await update_password();
-
-  // @ts-ignore
-  emitter.emit(eventId);
+  // call the handler and end the event
+  try {
+    await handler();
+  } catch (error) {
+    Logger.error(error);
+  } finally {
+    // @ts-ignore
+    emitter.emit(eventId);
+  }
 }
 
 /**
@@ -181,23 +195,32 @@ export async function delete_entries_handler(
   eventId: string,
   entries: Entry[]
 ): Promise<void> {
-  for (const entry of entries) {
-    const email_data = get_email_from_entry(entry);
-    if (!email_data) continue;
+  const handler = async () => {
+    for (const entry of entries) {
+      const email_data = get_email_from_entry(entry);
+      if (!email_data) continue;
 
-    const { email } = email_data;
-    // get user entry from ldap
-    const user = await get_one_entry(`(&(mail=${email}))`);
-    if (!user) continue;
-    // Update password with random password
-    const random_password = await ssha_pass_async(
-      Math.random().toString(36).slice(-8)
-    );
-    await change_user_password(user.dn, random_password);
+      const { email } = email_data;
+      // get user entry from ldap
+      const user = await get_one_entry(`(&(mail=${email}))`);
+      if (!user) continue;
+      // Update password with random password
+      const random_password = await ssha_pass_async(
+        Math.random().toString(36).slice(-8)
+      );
+      await change_user_password(user.dn, random_password);
+    }
+  };
+
+  // call the handler and end the event
+  try {
+    await handler();
+  } catch (error) {
+    Logger.error(error);
+  } finally {
+    // @ts-ignore
+    emitter.emit(eventId);
   }
-
-  // @ts-ignore
-  emitter.emit(eventId);
 }
 
 /**
@@ -207,26 +230,34 @@ export async function update_entries_handler(
   eventId: string,
   entries: ModifiedEntry[]
 ): Promise<void> {
-  for (const { entry, modified_attributes } of entries) {
-    const email_data = get_email_from_entry(entry);
-    if (!email_data) continue;
+  const handler = async () => {
+    for (const { entry, modified_attributes } of entries) {
+      const email_data = get_email_from_entry(entry);
+      if (!email_data) continue;
+      // get user entry from ldap
+      const user = await get_one_entry(`(&(mail=${email_data.email}))`);
+      if (!user) continue;
 
-    const { email } = email_data;
-    // get user entry from ldap
-    const user = await get_one_entry(`(&(mail=${email}))`);
-    if (!user) continue;
-
-    for (const attr of modified_attributes) {
-      const change = new Change({
-        operation: "replace",
-        modification: new Attribute({
-          type: attr,
-          values: [<any>entry[attr]],
-        }),
-      });
-      await iRedMailLDAPClient.modify(user.dn, change);
+      for (const attr of modified_attributes) {
+        const change = new Change({
+          operation: "replace",
+          modification: new Attribute({
+            type: attr,
+            values: [<any>entry[attr]],
+          }),
+        });
+        await iRedMailLDAPClient.modify(user.dn, change);
+      }
     }
+  };
+
+  // call the handler and end the event
+  try {
+    await handler();
+  } catch (error) {
+    Logger.error(error);
+  } finally {
+    // @ts-ignore
+    emitter.emit(eventId);
   }
-  // @ts-ignore
-  emitter.emit(eventId);
 }

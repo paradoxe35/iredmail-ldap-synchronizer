@@ -1,5 +1,5 @@
 import { Client, Entry } from "ldapts";
-import { EntriesStateDb } from "../datastore";
+import { EntriesStateDb, entries_state_db } from "../datastore";
 import { Buffer } from "buffer";
 import { EMAIL_REGEX, lodash, wait } from "../utils";
 import { CRUD_OPERATIONS, ModifiedEntry } from "../types";
@@ -15,7 +15,7 @@ if (!HOST) {
 
 const mainLDAPClient = new Client({
   url: `ldap://${HOST}`,
-  timeout: 60 * 1000,
+  timeout: 0,
   connectTimeout: 0,
   strictDN: true,
 });
@@ -71,6 +71,7 @@ function emit_event(event: KeyOfMessageEvents, ...args: any[]): Promise<any> {
  * this function should be called once.
  */
 export default async function observe_main_client_entries() {
+  Logger.info("Main client ldap server is observing...");
   // wait a time to let all components start.
   await wait(5000);
 
@@ -84,13 +85,13 @@ export default async function observe_main_client_entries() {
     );
   }
 
-  // Bind to the main client ldap server.
-  await mainLDAPClient.bind(bind_dn, bind_password);
-
-  process.on("SIGINT", mainLDAPClient.unbind);
-
   // Process the observer loop.
-  const process_loop = async () => {
+  const process_loop = async (
+    options?: { exit: boolean },
+    exitCode?: number
+  ) => {
+    if (options?.exit) process.exit();
+
     // Search for all entries.
     const result = await mainLDAPClient.search(base_dn, {
       filter:
@@ -105,10 +106,10 @@ export default async function observe_main_client_entries() {
     );
 
     // Compare the hash of the entries.
-    const current_hash = await EntriesStateDb.get_hash();
+    const { hash: current_hash, _id } = await EntriesStateDb.get_hash();
     if (current_hash !== entries_hash) {
       // Update the hash.
-      await EntriesStateDb.set_hash(entries_hash);
+      await EntriesStateDb.set_hash(entries_hash, _id);
 
       const current_entries = <Entry[]>(
         JSON.parse(Buffer.from(current_hash, "base64").toString("ascii"))
@@ -140,10 +141,23 @@ export default async function observe_main_client_entries() {
     }
 
     // Wait 5 seconds before next loop.
-    await wait(5000);
+    await wait(10 * 1000);
+
+    // manuel compactDatafileAsync nedb
+    await entries_state_db.compactDatafileAsync();
+
     setImmediate(process_loop);
   };
 
+  // Bind to the main client ldap server.
+  await mainLDAPClient.bind(bind_dn, bind_password);
+
+  // clean up server binding.
+  process.on("SIGINT", process_loop.bind(null, { exit: true }));
+  process.on("SIGINT", mainLDAPClient.unbind);
+  process.on("exit", mainLDAPClient.unbind);
+
+  // start process loop.
   setImmediate(process_loop);
 }
 
