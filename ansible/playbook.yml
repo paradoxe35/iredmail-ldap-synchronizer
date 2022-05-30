@@ -5,8 +5,6 @@
   become_user: ubuntu
   become: true
   become_method: sudo
-  vars_files:
-    - vars.yml
   tasks:
     - name: APT | Update & Upgrade
       apt:
