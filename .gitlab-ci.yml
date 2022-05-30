@@ -5,6 +5,7 @@ stages:          # List of stages for jobs, and their order of execution
 
 before_script:
   - python --version  # For debugging
+  - python -m pip install --upgrade pip
   - pip install virtualenv
   - python -m venv ansible/venv
   - source ansible/venv/bin/activate
