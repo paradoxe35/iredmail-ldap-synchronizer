@@ -1,0 +1,20 @@
+image: python:3.8.9
+
+stages:          # List of stages for jobs, and their order of execution
+  - deploy
+
+before_script:
+  - python --version  # For debugging
+  - pip install virtualenv
+  - python -m venv ansible/venv
+  - source venv/bin/activate
+
+
+deploy-job:      # This job runs in the deploy stage.
+  stage: deploy  # It only runs when *both* jobs in the test stage complete successfully.
+  only:
+    refs:
+      - main
+  script:
+    - echo "Deploying application..."
+    - echo "Application successfully deployed."
