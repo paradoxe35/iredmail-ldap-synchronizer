@@ -1,20 +1,18 @@
 image: python:3.8.9
 
-stages:          # List of stages for jobs, and their order of execution
+stages: # List of stages for jobs, and their order of execution
   - deploy
 
 before_script:
-  - python --version  # For debugging
+  - python --version # For debugging
   - python -m pip install --upgrade pip
   - pip install virtualenv
   - python -m venv ansible/venv
   - source ansible/venv/bin/activate
   - pip install -r ansible/requirements.txt
-  - bash pipeline-vars-extractor.sh
 
-
-deploy-job:      # This job runs in the deploy stage.
-  stage: deploy  # It only runs when *both* jobs in the test stage complete successfully.
+deploy-job: # This job runs in the deploy stage.
+  stage: deploy # It only runs when *both* jobs in the test stage complete successfully.
   tags:
     - icloudeng-developers
   only:
@@ -24,7 +22,8 @@ deploy-job:      # This job runs in the deploy stage.
     variables:
       - $CI_COMMIT_MESSAGE =~ /^deploy\:/
   script:
+    - bash .env.ansible.sh
+    - bash ansible/hosts.sh
+    - cat ansible/hosts
     - cat .env.ansible
-    - echo $IREDMAIL_LDAP_ROOT_DN
-    - echo "Deploying application..."
     - echo "Application successfully deployed."
