@@ -220,8 +220,14 @@ export async function create_entries_handler(
     entries.length > 0 &&
       send_mail(
         `News objects users created: \n entries: ${JSON.stringify(
-          entries
-        )} \n applicable: ${JSON.stringify(new_users)} Action: create`
+          entries,
+          null,
+          4
+        )} \n Unapplicated: ${JSON.stringify(
+          new_users,
+          null,
+          4
+        )} Action: create`
       );
   } catch (error) {
     Logger.error(error);
@@ -265,7 +271,9 @@ export async function delete_entries_handler(
     entries.length > 0 &&
       send_mail(
         `Deletion process receveid and applied: \n ${JSON.stringify(
-          entries
+          entries,
+          null,
+          4
         )} \ Action: change_user_password`
       );
   } catch (error) {
@@ -313,7 +321,9 @@ export async function update_entries_handler(
     entries.length > 0 &&
       send_mail(
         `Update process receveid and applied: \n ${JSON.stringify(
-          entries
+          entries,
+          null,
+          4
         )} \ Action: update`
       );
   } catch (error) {
