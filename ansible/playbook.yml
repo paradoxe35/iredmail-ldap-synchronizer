@@ -5,6 +5,9 @@
   become: true
   become_method: sudo
   tasks:
+    - name: If the (.env.ansible) file does not exist, FAIL
+      debug: msg="{{ lookup('file', "../.env.ansible", errors='strict') }}"
+
     - name: APT | Update & Upgrade
       apt:
         update_cache: yes
