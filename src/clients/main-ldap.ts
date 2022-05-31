@@ -24,7 +24,7 @@ const mainLDAPClient = new Client({
  * Ingore all entries from LDAP_IGNORE_USERS.
  * @param entries
  */
-function ingore_users_entries(entries: Entry[]): Entry[] {
+function filter_users_entries(entries: Entry[]): Entry[] {
   const ignore_users = process.env.LDAP_IGNORE_USERS || "";
   const must_have_password = process.env.LDAP_MUST_HAVE_PASSWORD === "true";
 
@@ -111,7 +111,7 @@ export default async function observe_main_client_entries() {
       return;
     }
 
-    const entries = ingore_users_entries(result!.searchEntries);
+    const entries = filter_users_entries(result!.searchEntries);
 
     const entries_hash = Buffer.from(JSON.stringify(entries)).toString(
       "base64"

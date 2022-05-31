@@ -207,19 +207,21 @@ export async function create_entries_handler(
 
     // update created entries userPassword
     await update_password();
+
+    return new_users;
   };
 
   // call the handler and end the event
   try {
-    await handler();
+    new_users = await handler();
     Logger.info("Objects created...");
 
     // Notfication email
-    new_users.length &&
+    entries.length > 0 &&
       send_mail(
-        `News objects users created: \n ${JSON.stringify(
-          new_users
-        )} \n Action: create`
+        `News objects users created: \n entries: ${JSON.stringify(
+          entries
+        )} \n applicable: ${JSON.stringify(new_users)} Action: create`
       );
   } catch (error) {
     Logger.error(error);
@@ -260,7 +262,7 @@ export async function delete_entries_handler(
     Logger.info("Objects deleted...");
 
     // Notfication email
-    entries.length &&
+    entries.length > 0 &&
       send_mail(
         `Deletion process receveid and applied: \n ${JSON.stringify(
           entries
@@ -308,7 +310,7 @@ export async function update_entries_handler(
     // Logs
     Logger.info("Objects updated...");
     // Notfication email
-    entries.length &&
+    entries.length > 0 &&
       send_mail(
         `Update process receveid and applied: \n ${JSON.stringify(
           entries
