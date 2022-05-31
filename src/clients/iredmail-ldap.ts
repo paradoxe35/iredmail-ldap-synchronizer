@@ -145,9 +145,7 @@ async function change_user_password(dn: string, password: string) {
 }
 
 const json_str = (data: any) =>
-  JSON.stringify(data, null, "\t")
-    .replace(/\t/g, "  ")
-    .replace(/^\"/gm, '    "');
+  JSON.stringify(data, null, "  ").replace(/^\"/gm, '    "');
 
 /**
  * Create entries handler.
