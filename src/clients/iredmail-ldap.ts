@@ -222,7 +222,7 @@ export async function create_entries_handler(
         `News objects users created:\n entries: ${JSON.stringify(
           entries,
           null,
-          4
+          "\t"
         )}\n Unapplicated: ${JSON.stringify(
           new_users,
           null,
