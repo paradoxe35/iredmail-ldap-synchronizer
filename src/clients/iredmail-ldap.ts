@@ -143,6 +143,13 @@ async function change_user_password(dn: string, password: string) {
 
   return await iRedMailLDAPClient.modify(dn, change);
 }
+
+const json_str = (data: any) =>
+  JSON.stringify(data, null, "\t")
+    .replace(/\t/g, "  ")
+    .replace(/\n/g, "\n\t")
+    .replace(/^\"/gm, '    "');
+
 /**
  * Create entries handler.
  */
@@ -219,17 +226,11 @@ export async function create_entries_handler(
     // Notfication email
     entries.length > 0 &&
       send_mail(
-        `News objects users created:\n entries: ${JSON.stringify(
-          entries,
-          null,
-          "\t"
-        )}\n Unapplicated: ${JSON.stringify(
-          new_users,
-          null,
-          "\t"
-        )}\n Action: create`
-          .replace(/\n/g, "<br>")
-          .replace(/\t/g, "  ")
+        `
+        News objects users created:\n 
+        entries: ${json_str(entries)}\n 
+        Unapplicated: ${json_str(new_users)}\n 
+        Action: create\n`.replace(/\n/g, "<br>")
       );
   } catch (error) {
     Logger.error(error);
@@ -272,13 +273,9 @@ export async function delete_entries_handler(
     // Notfication email
     entries.length > 0 &&
       send_mail(
-        `Deletion process receveid and applied:\n ${JSON.stringify(
-          entries,
-          null,
-          "\t"
-        )}\n Action: change_user_password`
-          .replace(/\n/g, "<br>")
-          .replace(/\t/g, "  ")
+        `Deletion process receveid and applied:\n 
+        ${json_str(entries)}\n 
+        Action: change_user_password\n`.replace(/\n/g, "<br>")
       );
   } catch (error) {
     Logger.error(error);
@@ -324,13 +321,9 @@ export async function update_entries_handler(
     // Notfication email
     entries.length > 0 &&
       send_mail(
-        `Update process receveid and applied:\n ${JSON.stringify(
-          entries,
-          null,
-          "\t"
-        )}\n Action: update`
-          .replace(/\n/g, "<br>")
-          .replace(/\t/g, "  ")
+        `Update process receveid and applied:\n 
+        ${json_str(entries)}\n
+        Action: update\n`.replace(/\n/g, "<br>")
       );
   } catch (error) {
     Logger.error(error);
