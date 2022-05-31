@@ -7,6 +7,7 @@
   tasks:
     - name: If the (.env.ansible) file does not exist, FAIL
       debug: msg="{{ lookup('file', "../.env.ansible", errors='strict') }}"
+      no_log: true
 
     - name: APT | Update & Upgrade
       apt:
@@ -16,7 +17,6 @@
     - name: "Install packages"
       apt:
         name:
-          - acl
           - unzip
         state: latest
 
