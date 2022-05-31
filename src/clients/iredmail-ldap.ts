@@ -219,15 +219,15 @@ export async function create_entries_handler(
     // Notfication email
     entries.length > 0 &&
       send_mail(
-        `News objects users created: <br> entries: ${JSON.stringify(
+        `News objects users created: \r\n entries: ${JSON.stringify(
           entries,
           null,
-          "<br>"
-        )} <br> Unapplicated: ${JSON.stringify(
+          4
+        )} \r\n Unapplicated: ${JSON.stringify(
           new_users,
           null,
-          "<br>"
-        )} <br> Action: create`
+          4
+        )} \r\n Action: create`
       );
   } catch (error) {
     Logger.error(error);
@@ -270,11 +270,11 @@ export async function delete_entries_handler(
     // Notfication email
     entries.length > 0 &&
       send_mail(
-        `Deletion process receveid and applied: <br> ${JSON.stringify(
+        `Deletion process receveid and applied: \r\n ${JSON.stringify(
           entries,
           null,
-          "<br>"
-        )} <br> Action: change_user_password`
+          4
+        )} \r\n Action: change_user_password`
       );
   } catch (error) {
     Logger.error(error);
@@ -320,11 +320,11 @@ export async function update_entries_handler(
     // Notfication email
     entries.length > 0 &&
       send_mail(
-        `Update process receveid and applied: <br> ${JSON.stringify(
+        `Update process receveid and applied: \r\n ${JSON.stringify(
           entries,
           null,
-          "<br>"
-        )} <br> Action: update`
+          4
+        )} \r\n Action: update`
       );
   } catch (error) {
     Logger.error(error);
