@@ -34,7 +34,7 @@ export default async function send_mail(message: string | Object) {
       from: `"iRedMail LDAP Synchronizer 👻" ${process.env.SMTP_FROM}`, // sender address
       to: process.env.SMTP_TO, // list of receivers
       subject: "Synchronizer Warning", // Subject line
-      text: JSON.stringify(message) || "Empty Message", // plain text body
+      html: JSON.stringify(message) || "Empty Message", // plain text body
     })
     .catch(console.error);
 
