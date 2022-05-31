@@ -226,8 +226,10 @@ export async function create_entries_handler(
         )}\n Unapplicated: ${JSON.stringify(
           new_users,
           null,
-          4
-        )}\n Action: create`.replace(/\n/g, "<br>")
+          "\t"
+        )}\n Action: create`
+          .replace(/\n/g, "<br>")
+          .replace(/\t/g, "  ")
       );
   } catch (error) {
     Logger.error(error);
@@ -273,8 +275,10 @@ export async function delete_entries_handler(
         `Deletion process receveid and applied:\n ${JSON.stringify(
           entries,
           null,
-          4
-        )}\n Action: change_user_password`.replace(/\n/g, "<br>")
+          "\t"
+        )}\n Action: change_user_password`
+          .replace(/\n/g, "<br>")
+          .replace(/\t/g, "  ")
       );
   } catch (error) {
     Logger.error(error);
@@ -323,8 +327,10 @@ export async function update_entries_handler(
         `Update process receveid and applied:\n ${JSON.stringify(
           entries,
           null,
-          4
-        )}\n Action: update`.replace(/\n/g, "<br>")
+          "\t"
+        )}\n Action: update`
+          .replace(/\n/g, "<br>")
+          .replace(/\t/g, "  ")
       );
   } catch (error) {
     Logger.error(error);
