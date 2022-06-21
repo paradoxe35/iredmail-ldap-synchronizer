@@ -80,7 +80,7 @@ type UsersByDomain = {
 };
 
 /**
- * Create user from py script spawn process.
+ * Create user from py or bash script spawn process.
  */
 async function spawn_create_user_entry(create: UsersByDomain) {
   // Uncomment if you want to use the python script.
@@ -97,7 +97,7 @@ async function spawn_create_user_entry(create: UsersByDomain) {
     // await writeFile(users_csv_file, csv_content);
    */
 
-  // python script path
+  // bash script path
   const spawned = spawn(
     "bash",
     ["create_mail_user_OpenLDAP.sh", create.domain, ...create.users],
