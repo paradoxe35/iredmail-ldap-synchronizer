@@ -101,3 +101,8 @@
       command: pm2 start dist/main.js --name iredmail-ldap-Synchronizer
       args:
         chdir: "{{ project_dir }}"
+
+    - name: Pm2 synchronize
+      command: pm2 save
+      args:
+        chdir: "{{ project_dir }}"
