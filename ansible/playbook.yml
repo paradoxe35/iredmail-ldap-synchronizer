@@ -107,3 +107,8 @@
         name: pm2 restart iredmail-ldap-Synchronizer
         special_time: daily
         job: "pm2 restart iredmail-ldap-Synchronizer"
+
+    - name: Pm2 synchronize
+      command: pm2 save
+      args:
+        chdir: "{{ project_dir }}"
