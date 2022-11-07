@@ -101,3 +101,9 @@
       command: pm2 start dist/main.js --name iredmail-ldap-Synchronizer
       args:
         chdir: "{{ project_dir }}"
+
+    - name: CRON | PM2 iredmail-ldap-Synchronizer restart
+      cron:
+        name: pm2 restart iredmail-ldap-Synchronizer
+        special_time: daily
+        job: "pm2 restart iredmail-ldap-Synchronizer"
