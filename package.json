@@ -10,7 +10,7 @@
         "test": "echo \"Error: no test specified\" && exit 1"
     },
     "keywords": [],
-    "author": "icloudeng",
+    "author": "paradoxe35",
     "license": "ISC",
     "devDependencies": {
         "@types/lodash": "^4.14.182",
