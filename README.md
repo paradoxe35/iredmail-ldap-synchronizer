@@ -2,7 +2,6 @@
 
 ## Getting started
 
-This should be private and only admins and developers have permission to edit it.
 Here are the tools you must have to get started (Test or Development).
 
 - NodeJS
