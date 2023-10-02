@@ -24,7 +24,7 @@ Here are the supported operations:
 **Clone the repository:**
 
 ```
-git clone https://devops.icloudeng.com/icloudeng-developers/iredmail-ldap-synchronizer.git
+git clone https://github.com/paradoxe35/iredmail-ldap-synchronizer.git
 ```
 
 **Install packages**
@@ -44,7 +44,7 @@ You must have the two following files at the root of the project: `.env` and `.e
 All of the following variables cannot be undefined or empty:
 
 ```
-LDAP_IGNORE_USERS=postmaster@icloudeng.com
+LDAP_IGNORE_USERS=postmaster@example.com
 LDAP_MUST_HAVE_USER_PASSWORD=true
 LDAP_DEFAULT_PASSWORD=888888
 
@@ -86,11 +86,3 @@ Activate it: `source ansible/venv/bin/activate`
 **Install the packages (Ansible)**
 
 `pip3 install ansible/requirements.txt -r`
-
-## Authors and acknowledgment
-
-@icloudeng
-
-## License
-
-...
